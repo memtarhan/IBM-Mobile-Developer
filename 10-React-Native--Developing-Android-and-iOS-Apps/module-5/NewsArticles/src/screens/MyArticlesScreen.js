@@ -7,9 +7,9 @@ import {
     StyleSheet,
     ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import {useNavigation} from "@react-navigation/native";
 import {
     widthPercentageToDP as wp,
     heightPercentageToDP as hp,
@@ -22,7 +22,11 @@ export default function MyArticlesScreen() {
 
     useEffect(() => {
         const fetchArticles = async () => {
-
+            const storedArticles = await AsyncStorage.getItem("customArticles");
+            if (storedArticles) {
+                setArticles(JSON.parse(storedArticles));
+            }
+            setLoading(false); // Loading is complete
         };
 
         fetchArticles();
@@ -33,13 +37,22 @@ export default function MyArticlesScreen() {
     };
 
     const handleArticleClick = (article) => {
+        navigation.navigate("CustomNewsScreen", {article});
     };
 
-    const deleteArticle = async () => {
-
+    const deleteArticle = async (index) => {
+        try {
+            const updatedArticles = [...articles];
+            updatedArticles.splice(index, 1); // Remove article from array
+            await AsyncStorage.setItem("customArticles", JSON.stringify(updatedArticles)); // Update AsyncStorage
+            setArticles(updatedArticles); // Update state
+        } catch (error) {
+            console.error("Error deleting the article:", error);
+        }
     };
 
-    const editArticle = () => {
+    const editArticle = (article, index) => {
+        navigation.navigate("NewsFormScreen", {articleToEdit: article, articleIndex: index});
     };
 
     return (
@@ -54,7 +67,7 @@ export default function MyArticlesScreen() {
             </TouchableOpacity>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#f59e0b" />
+                <ActivityIndicator size="large" color="#f59e0b"/>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContainer}>
                     {articles.length === 0 ? (
@@ -63,16 +76,32 @@ export default function MyArticlesScreen() {
                         articles.map((article, index) => (
                             <View key={index} style={styles.articleCard} testID="articleCard">
                                 <TouchableOpacity testID="handleArticleBtn">
-
+                                    {article.image && (
+                                        <Image
+                                            source={{uri: article.image}}
+                                            style={styles.articleImage}
+                                        />
+                                    )}
                                     <Text style={styles.articleTitle}>{article.title}</Text>
                                     <Text style={styles.articleDescription} testID="articleDescp">
-
+                                        {article.description?.substring(0, 50) + "..."}
                                     </Text>
                                 </TouchableOpacity>
 
                                 {/* Edit and Delete Buttons */}
                                 <View style={styles.actionButtonsContainer} testID="editDeleteButtons">
-
+                                    <TouchableOpacity
+                                        onPress={() => editArticle(article, index)}
+                                        style={styles.editButton} onPress={() => handleArticleClick(article)}
+                                    >
+                                        <Text style={styles.editButtonText}>Edit</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => deleteArticle(index)}
+                                        style={styles.deleteButton}
+                                    >
+                                        <Text style={styles.deleteButtonText}>Delete</Text>
+                                    </TouchableOpacity>
 
                                 </View>
                             </View>
@@ -102,8 +131,8 @@ const styles = StyleSheet.create({
         padding: wp(.7),
         alignItems: "center",
         borderRadius: 5,
-        width:300,
-        marginLeft:500
+        width: 300,
+        marginLeft: 500
         // marginBottom: hp(2),
     },
     addButtonText: {
@@ -113,12 +142,12 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         paddingBottom: hp(2),
-        height:'auto',
-        display:'flex',
-        alignItems:'center',
-        justifyContent:'center',
-        flexDirection:'row',
-        flexWrap:'wrap'
+        height: 'auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap'
     },
     noArticlesText: {
         textAlign: "center",
@@ -136,7 +165,7 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: {width: 0, height: 2},
         elevation: 3, // for Android shadow
     },
     articleImage: {

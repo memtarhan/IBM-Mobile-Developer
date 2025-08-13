@@ -1,10 +1,10 @@
-import { View,Text,TextInput,TouchableOpacity,Image,StyleSheet,} from "react-native";
-import React, { useState } from "react";
+import {View, Text, TextInput, TouchableOpacity, Image, StyleSheet,} from "react-native";
+import React, {useState} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {widthPercentageToDP as wp,heightPercentageToDP as hp,} from "react-native-responsive-screen";
+import {widthPercentageToDP as wp, heightPercentageToDP as hp,} from "react-native-responsive-screen";
 
-export default function NewsFormScreen({ route, navigation }) {
-    const { articleToEdit, articleIndex, onArticleEdited } = route.params || {};
+export default function NewsFormScreen({route, navigation}) {
+    const {articleToEdit, articleIndex, onArticleEdited} = route.params || {};
     const [title, setTitle] = useState(articleToEdit ? articleToEdit.title : "");
     const [image, setImage] = useState(articleToEdit ? articleToEdit.image : "");
     const [description, setDescription] = useState(
@@ -12,9 +12,26 @@ export default function NewsFormScreen({ route, navigation }) {
     );
 
     const saveArticle = async () => {
+        const newArticle = {title, image, description};
+        try {
+            const existingArticles = await AsyncStorage.getItem("customArticles");
+            const articles = existingArticles ? JSON.parse(existingArticles) : [];
 
+            // If editing an article, update it; otherwise, add a new one
+            if (articleToEdit !== undefined) {
+                articles[articleIndex] = newArticle;
+                await AsyncStorage.setItem("customArticles", JSON.stringify(articles));
+                if (onArticleEdited) onArticleEdited(); // Notify the edit
+            } else {
+                articles.push(newArticle); // Add new article
+                await AsyncStorage.setItem("customArticles", JSON.stringify(articles));
+            }
+
+            navigation.goBack(); // Return to the previous screen
+        } catch (error) {
+            console.error("Error saving the article:", error);
+        }
     };
-
     return (
         <View style={styles.container}>
             <TextInput
@@ -30,7 +47,7 @@ export default function NewsFormScreen({ route, navigation }) {
                 style={styles.input}
             />
             {image ? (
-                <Image source={{ uri: image }} style={styles.image} />
+                <Image source={{uri: image}} style={styles.image}/>
             ) : (
                 <Text style={styles.imagePlaceholder}>Upload Image URL</Text>
             )}
@@ -40,7 +57,7 @@ export default function NewsFormScreen({ route, navigation }) {
                 onChangeText={setDescription}
                 multiline={true}
                 numberOfLines={4}
-                style={[styles.input, { height: hp(20), textAlignVertical: "top" }]}
+                style={[styles.input, {height: hp(20), textAlignVertical: "top"}]}
             />
             <TouchableOpacity onPress={saveArticle} style={styles.saveButton}>
                 <Text style={styles.saveButtonText}>Save Article</Text>
@@ -63,7 +80,7 @@ const styles = StyleSheet.create({
     },
     image: {
         width: 200,
-        height:150,
+        height: 150,
         margin: wp(2),
     },
     imagePlaceholder: {
